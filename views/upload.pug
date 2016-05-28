@@ -1,0 +1,14 @@
+.row
+  .col-lg-12
+    h1.page-header
+      | Upload
+      small Upload taxi logs
+// /.row
+.row
+  .col-lg-12
+    form.form-inline#upload-form
+      .form-group
+        label(for='logs-file') File upload
+        input#logs-file(type='file')
+        p.help-block Upload a taxi logs file.
+      button.btn.btn-default(type='button', onclick='upload()') Upload

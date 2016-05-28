@@ -1,12 +1,24 @@
-var path = require("path");
-var express = require("express");
-var session = require("express-session");
-var mongo = require("mongodb").MongoClient;
-var hash = require("password-hash");
-var bodyParser = require("body-parser");
-var DB_URL = "mongodb://localhost:27017/project";
+const path = require("path");
+const express = require("express");
+const session = require("express-session");
+const mongo = require("mongodb").MongoClient;
+const hash = require("password-hash");
+const bodyParser = require("body-parser");
+const readline = require("readline");
 
-var app = new express();
+const DB_URL = "mongodb://localhost:27017/project";
+const STAT = {                                                                  
+    "定點": 0,
+    "載客": 1,
+    "空車": 2,
+    "休息": 3,
+    "登出": 4,
+    "前往": 5,
+    "未知": 6,
+    "排班": 7
+};
+
+const app = new express();
 var db;
 
 app.set("view engine", "pug");
@@ -39,6 +51,47 @@ app.get("/sign", function (req, res) {
     } else {
         res.render("sign");
     }
+});
+
+app.post("/upload-progress", function (req, res) {
+});
+
+app.post("/upload", function (req, res) {
+    var logs = [];
+    req.setEncoding("utf8");
+
+    var reader = readline.createInterface({
+        input: req
+    });
+    
+    reader.on("line", function (line) {
+        var attrs = line.split(",");
+        logs.push({
+            no: Number(attrs[0]),
+            lon: Number(attrs[1]),
+            lat: Number(attrs[2]),
+            sta: STAT[attrs[3]],
+            time: parseTime(attrs[4])
+        });
+    });
+
+    reader.on("close", function () {
+        db.collection("taxi_logs")
+            .insertMany(logs, { w: 1, ordered: false }, function (err, result) {
+                res.json({
+                    status: "SUCCESS",
+                    content: result.n
+                });
+            });
+    });
+});
+
+app.post("/renderUpload", function (req, res) {
+    res.render("upload");
+});
+
+app.post("/renderDashboard", function (req, res) {
+    res.render("dashboard");
 });
 
 app.post("/signup", function (req, res) {
@@ -99,6 +152,15 @@ app.post("/signout", function (req, res) {
         content: "/"
     });
 });
+
+function parseTime(timeStr) {
+    var token = /^(\d{4}-\d{2}-\d{2})\s(\d{2}):(\d{2}):(\d{2})$/.exec(timeStr);
+    var time = Date.parse(token[1]) / 1000;
+    time += Number(token[2]) * 60 * 60;
+    time += Number(token[3]) * 60;
+    time += Number(token[4]);
+    return time;
+}
 
 function unknownErrorHandler(res, err) {
     res.json({

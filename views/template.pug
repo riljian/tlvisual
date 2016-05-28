@@ -25,7 +25,7 @@ html
         ul.nav.navbar-right.top-nav
           li.dropdown
             a.dropdown-toggle(href='javascript:void(0)', data-toggle='dropdown')
-              i.fa.fa-user= username
+              i.fa.fa-user= ' ' + username
               b.caret
             ul.dropdown-menu
               li
@@ -45,11 +45,11 @@ html
         #navbar-collapse-primary.collapse.navbar-collapse
           ul.nav.navbar-nav.side-nav
             li
-              a(href='javascript:void(0)')
+              a(href='javascript:void(0)', onclick='renderDashboard(this)')
                 i.fa.fa-fw.fa-dashboard
                 |  Dashboard
             li
-              a(href='javascript:void(0)')
+              a(href='javascript:void(0)', onclick='renderUpload(this)')
                 i.fa.fa-fw.fa-cloud-upload
                 |  Upload
             li
@@ -63,12 +63,6 @@ html
         // /.navbar-collapse
       #page-wrapper
         .container-fluid
-          // Page Heading
-          .row
-            .col-lg-12
-          // /.row
-        // /.container-fluid
-      // /#page-wrapper
     // /#wrapper
     // jQuery
     script(src='https://code.jquery.com/jquery-2.2.4.min.js')
