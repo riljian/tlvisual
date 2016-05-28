@@ -1,0 +1,42 @@
+#sign-form {
+    position: relative;
+    top: 150px;
+    padding: 20px;
+}
+
+#sign-form > .input-group {
+    width: 90%;
+    margin: 20px 5%;
+}
+
+#sign-form > .input-group > input {
+    width: 100%;
+    font-size: 1.2em;
+    border: none;
+    text-align: center;
+    background-color: transparent;
+}
+
+#sign-form > .input-group > input:focus {
+    outline: none;
+}
+
+#sign-form > .input-group::before {
+    width: 100%;
+    height: 2px;
+    position: absolute;
+    bottom: 0;
+    content: "";
+    background-color: black;
+    visibility: hidden;
+    -webkit-transform: scaleX(0);
+    transform: scaleX(0);
+    -webkit-transition: all 0.3s ease-in-out 0s;
+    transition: all 0.3s ease-in-out 0s;
+}
+
+#sign-form > .input-group.focused::before {
+    visibility: visible;
+    -webkit-transform: scaleX(1);
+    transform: scaleX(1);
+}

@@ -1,0 +1,23 @@
+{
+  "name": "tlvisual",
+  "version": "1.0.0",
+  "description": "Data visualization of taxi logs",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "riljian",
+  "license": "ISC",
+  "repository": {
+    "type": "git",
+    "url": "git@github.com:riljian/tlvisual.git"
+  },
+  "dependencies": {
+    "body-parser": "^1.15.1",
+    "express": "^4.13.4",
+    "express-session": "^1.13.0",
+    "mongodb": "^2.1.20",
+    "password-hash": "^1.2.2",
+    "pug": "^2.0.0-alpha8"
+  }
+}

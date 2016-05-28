@@ -1,0 +1,23 @@
+doctype html
+html
+  head
+    meta(charset='UTF-8')
+    title Document
+    meta(http-equiv='X-UA-Compatible', content='IE=edge')
+    meta(name='viewport', content='width=device-width, initial-scale=1')
+    link(rel='stylesheet', href='https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css')
+    link(rel='stylesheet', href='/static/css/style.css')
+  body
+    .container
+      .row
+        .col-md-offset-4.col-md-4
+          form#sign-form
+            .input-group
+              input#username(type='text', placeholder='帳號')
+            .input-group
+              input#password(type='password', placeholder='密碼')
+            button.btn.btn-block.btn-primary 註冊
+            button.btn.btn-block.btn-success 登入
+    script(src='https://code.jquery.com/jquery-2.2.4.min.js')
+    script(src='https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/js/bootstrap.min.js')
+    script(src='/static/js/sign-script.js')
