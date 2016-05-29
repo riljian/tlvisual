@@ -29,6 +29,7 @@ const STAT = {
 
 const app = new express();
 var db;
+var wtFetchQ = [];
 
 app.set("view engine", "pug");
 app.use("/static", express.static(path.join(__dirname, "public")));
@@ -63,7 +64,7 @@ app.get("/sign", function (req, res) {
 });
 
 app.post("/upload", function (req, res) {
-    var logs = [], first = true;
+    var logs = [];
     req.setEncoding("utf8");
 
     var reader = readline.createInterface({
@@ -79,10 +80,6 @@ app.post("/upload", function (req, res) {
             sta: STAT[attrs[3]],
             time: parseTime(attrs[4])
         });
-        if (first) {
-            first = false;
-            fetchWeather(attrs[4].substr(0, 10));
-        }
     });
 
     reader.on("close", function () {
@@ -92,6 +89,25 @@ app.post("/upload", function (req, res) {
                     status: "SUCCESS",
                     content: result.insertedCount
                 });
+                if (result.insertedCount > 0) {
+                    db.collection("taxi_logs")
+                        .find({ _id: result.insertedIds[1] }).limit(1)
+                        .next(function (err, item) {
+                            if (err) {
+                                console.log(err);
+                                return;
+                            }
+                            var date = (new Date(item.time * 1000)).toISOString().substr(0, 10);
+                            WT_STATION.forEach(function (station) {
+                                wtFetchQ.push({
+                                    command: "viewMain",
+                                    station: station.no,
+                                    datepicker: date,
+                                    times: 0
+                                });
+                            });
+                        });
+                }
             });
     });
 });
@@ -163,77 +179,79 @@ app.post("/signout", function (req, res) {
     });
 });
 
-function fetchWeather(date) {
-    WT_STATION.forEach(function (station) {
-        var para = {
-            command: "viewMain",
-            station: station.no,
-            datepicker: date
-        };
+function fetchWeather(station, date) {
+    if (wtFetchQ.length === 0) {
+        return;
+    }
 
-        http.get(
-            WT_URL + queryString.stringify(para),
-            function (res) {
-                var content = "";
+    var para = wtFetchQ.pop();
 
-                res.setEncoding("utf8");
-                res.on("data", function (chunk) {
-                    content += chunk;
-                });
-                res.on("end", function () {
-                    jsdom.env({
-                        html: content,
-                        src: [JQUERY],
-                        done: function (err, window) {
-                            if (err) {
-                                console.log(err.message);
-                                return;
-                            }
-                            var $rows = window.$("tr");
-                            var logs = [];
-                            for (var i = 3; i < $rows.length; i += 1) {
-                                var temp = Number($rows.eq(i).children("td").eq(3).text()),
-                                    humi = Number($rows.eq(i).children("td").eq(5).text()),
-                                    wind = Number($rows.eq(i).children("td").eq(8).text()),
-                                    rain = Number($rows.eq(i).children("td").eq(9).text());
-                                logs.push({
-                                    time: Date.parse(para.datepicker) / 1000 + Number($rows.eq(i).children("td").eq(0).text()) * 3600,
-                                    station: para.station,
-                                    temp: temp ? temp : 0,
-                                    humi: humi ? humi : 0,
-                                    wind: wind ? wind : 0,
-                                    rain: rain ? rain : 0
+    http.get(
+        WT_URL + queryString.stringify(para),
+        function (res) {
+            var content = "";
+
+            res.setEncoding("utf8");
+            res.on("data", function (chunk) {
+                content += chunk;
+            });
+            res.on("end", function () {
+                jsdom.env({
+                    html: content,
+                    src: [JQUERY],
+                    done: function (err, window) {
+                        if (err) {
+                            console.log(err.message);
+                            return;
+                        }
+                        var $rows = window.$("tr");
+                        var logs = [];
+                        var time = Date.parse(para.datepicker) / 1000;
+                        for (var i = 3; i < $rows.length; i += 1) {
+                            var temp = Number($rows.eq(i).children("td").eq(3).text()),
+                                humi = Number($rows.eq(i).children("td").eq(5).text()),
+                                wind = Number($rows.eq(i).children("td").eq(8).text()),
+                                rain = Number($rows.eq(i).children("td").eq(9).text());
+                            logs.push({
+                                time: time + (i - 2) * 3600,
+                                station: para.station,
+                                temp: temp ? temp : 0,
+                                humi: humi ? humi : 0,
+                                wind: wind ? wind : 0,
+                                rain: rain ? rain : 0
+                            });
+                        }
+                        if (logs.length > 0) {
+                            db.collection("weather_logs")
+                                .insertMany(logs, { w: 1, ordered: false }, function (err, result) {
+                                    console.log([
+                                        "Insert",
+                                        result.insertedCount,
+                                        "logs to",
+                                        para.station,
+                                        "on",
+                                        para.datepicker
+                                    ].join(" "));
                                 });
-                            }
-                            if (logs.length > 0) {
-                                db.collection("weather_logs")
-                                    .insertMany(logs, { w: 1, ordered: false }, function (err, result) {
-                                        console.log([
-                                            "Insert",
-                                            result.insertedCount,
-                                            "logs to",
-                                            para.station,
-                                            "on",
-                                            para.datepicker
-                                        ].join(" "));
-                                    });
+                        } else {
+                            para.times += 1;
+                            if (para.times < 5) {
+                                wtFetchQ.unshift(para);
                             } else {
                                 console.log([
-                                    "Insert",
-                                    0,
-                                    "logs to",
+                                    "Station",
                                     para.station,
-                                    "on",
-                                    para.datepicker
+                                    "has tried more than 5 times"
                                 ].join(" "));
                             }
                         }
-                    });
+                    }
                 });
-            }
-        ).on("error", function (err) {
-            console.log(err.message);
-        });
+            });
+        }
+    ).on("error", function (err) {
+        console.log(para);
+        console.log(err.message);
     });
 }
 
@@ -260,6 +278,8 @@ mongo.connect(DB_URL, function (err, database) {
     }
 
     db = database;
+
+    setInterval(fetchWeather, 1000);
 
     app.listen(process.argv[2] || 8080, function () {
         console.log("Listen on port " + (process.argv[2] || 8080));
