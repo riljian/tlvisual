@@ -1,11 +1,20 @@
 const path = require("path");
+const fs = require("fs");
 const express = require("express");
 const session = require("express-session");
+const jsdom = require("jsdom");
+const http = require("http");
+const queryString = require("querystring");
 const mongo = require("mongodb").MongoClient;
 const hash = require("password-hash");
 const bodyParser = require("body-parser");
 const readline = require("readline");
 
+const WT_STATION = JSON.parse(
+    fs.readFileSync("station-list.json", "utf8")
+);
+const JQUERY = fs.readFileSync("public/js/jquery-2.2.4.min.js", "utf8");
+const WT_URL = "http://e-service.cwb.gov.tw/HistoryDataQuery/DayDataController.do?";
 const DB_URL = "mongodb://localhost:27017/project";
 const STAT = {                                                                  
     "定點": 0,
@@ -53,11 +62,8 @@ app.get("/sign", function (req, res) {
     }
 });
 
-app.post("/upload-progress", function (req, res) {
-});
-
 app.post("/upload", function (req, res) {
-    var logs = [];
+    var logs = [], first = true;
     req.setEncoding("utf8");
 
     var reader = readline.createInterface({
@@ -73,6 +79,10 @@ app.post("/upload", function (req, res) {
             sta: STAT[attrs[3]],
             time: parseTime(attrs[4])
         });
+        if (first) {
+            first = false;
+            fetchWeather(attrs[4].substr(0, 10));
+        }
     });
 
     reader.on("close", function () {
@@ -80,7 +90,7 @@ app.post("/upload", function (req, res) {
             .insertMany(logs, { w: 1, ordered: false }, function (err, result) {
                 res.json({
                     status: "SUCCESS",
-                    content: result.n
+                    content: result.insertedCount
                 });
             });
     });
@@ -152,6 +162,80 @@ app.post("/signout", function (req, res) {
         content: "/"
     });
 });
+
+function fetchWeather(date) {
+    WT_STATION.forEach(function (station) {
+        var para = {
+            command: "viewMain",
+            station: station.no,
+            datepicker: date
+        };
+
+        http.get(
+            WT_URL + queryString.stringify(para),
+            function (res) {
+                var content = "";
+
+                res.setEncoding("utf8");
+                res.on("data", function (chunk) {
+                    content += chunk;
+                });
+                res.on("end", function () {
+                    jsdom.env({
+                        html: content,
+                        src: [JQUERY],
+                        done: function (err, window) {
+                            if (err) {
+                                console.log(err.message);
+                                return;
+                            }
+                            var $rows = window.$("tr");
+                            var logs = [];
+                            for (var i = 3; i < $rows.length; i += 1) {
+                                var temp = Number($rows.eq(i).children("td").eq(3).text()),
+                                    humi = Number($rows.eq(i).children("td").eq(5).text()),
+                                    wind = Number($rows.eq(i).children("td").eq(8).text()),
+                                    rain = Number($rows.eq(i).children("td").eq(9).text());
+                                logs.push({
+                                    time: Date.parse(para.datepicker) / 1000 + Number($rows.eq(i).children("td").eq(0).text()) * 3600,
+                                    station: para.station,
+                                    temp: temp ? temp : 0,
+                                    humi: humi ? humi : 0,
+                                    wind: wind ? wind : 0,
+                                    rain: rain ? rain : 0
+                                });
+                            }
+                            if (logs.length > 0) {
+                                db.collection("weather_logs")
+                                    .insertMany(logs, { w: 1, ordered: false }, function (err, result) {
+                                        console.log([
+                                            "Insert",
+                                            result.insertedCount,
+                                            "logs to",
+                                            para.station,
+                                            "on",
+                                            para.datepicker
+                                        ].join(" "));
+                                    });
+                            } else {
+                                console.log([
+                                    "Insert",
+                                    0,
+                                    "logs to",
+                                    para.station,
+                                    "on",
+                                    para.datepicker
+                                ].join(" "));
+                            }
+                        }
+                    });
+                });
+            }
+        ).on("error", function (err) {
+            console.log(err.message);
+        });
+    });
+}
 
 function parseTime(timeStr) {
     var token = /^(\d{4}-\d{2}-\d{2})\s(\d{2}):(\d{2}):(\d{2})$/.exec(timeStr);
