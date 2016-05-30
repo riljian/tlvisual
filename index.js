@@ -51,7 +51,8 @@ app.get(["/"], function (req, res, next) {
 
 app.get("/", function (req, res) {
     res.render("template", {
-        username: req.session.username
+        username: req.session.username,
+        admin: req.session.username === "admin"
     });
 });
 

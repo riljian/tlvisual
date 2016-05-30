@@ -29,15 +29,6 @@ html
               b.caret
             ul.dropdown-menu
               li
-                a(href='javascript:void(0)')
-                  i.fa.fa-fw.fa-user
-                  |  Profile
-              li
-                a(href='javascript:void(0)')
-                  i.fa.fa-fw.fa-gear
-                  |  Settings
-              li.divider
-              li
                 a(href='javascript:signout()')
                   i.fa.fa-fw.fa-power-off
                   |  Log Out
@@ -48,10 +39,11 @@ html
               a(href='javascript:void(0)', onclick='renderDashboard(this)')
                 i.fa.fa-fw.fa-dashboard
                 |  Dashboard
-            li
-              a(href='javascript:void(0)', onclick='renderUpload(this)')
-                i.fa.fa-fw.fa-cloud-upload
-                |  Upload
+            if admin
+              li
+                a(href='javascript:void(0)', onclick='renderUpload(this)')
+                  i.fa.fa-fw.fa-cloud-upload
+                  |  Upload
             li
               a(href='javascript:void(0)')
                 i.fa.fa-fw.fa-bar-chart-o
