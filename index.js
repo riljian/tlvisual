@@ -76,8 +76,10 @@ app.post("/upload", function (req, res) {
         var attrs = line.split(",");
         logs.push({
             no: Number(attrs[0]),
-            lon: Number(attrs[1]),
-            lat: Number(attrs[2]),
+            pos: {
+                lng: Number(attrs[1]),
+                lat: Number(attrs[2]),
+            },
             sta: STAT[attrs[3]],
             time: parseTime(attrs[4])
         });
@@ -118,7 +120,21 @@ app.post("/renderUpload", function (req, res) {
 });
 
 app.post("/renderDashboard", function (req, res) {
-    res.render("dashboard");
+    db.collection("taxi_logs").stats(function (err, taxi_stats) {
+        if (err) {
+            console.log(err.message);
+        }
+        db.collection("weather_logs").stats(function (err, weather_stats) {
+            if (err) {
+                console.log(err.message);
+            }
+            res.render("dashboard", {
+                taxi_logs_count: taxi_stats.count,
+                weather_logs_count: weather_stats.count,
+                data_size: ((taxi_stats.size + weather_stats.size) / 1048576).toFixed(2)
+            });
+        });
+    });
 });
 
 app.post("/signup", function (req, res) {
@@ -177,6 +193,16 @@ app.post("/signout", function (req, res) {
     res.json({
         status: "SUCCESS",
         content: "/"
+    });
+});
+
+app.post("/data", function (req, res) {
+    var data = {};
+
+    WT_STATION.forEach(function (station) {
+        data[station.no] = {
+            name: station.area
+        };
     });
 });
 

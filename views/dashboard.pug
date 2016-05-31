@@ -10,10 +10,10 @@
       .panel-heading
         .row
           .col-xs-3
-            i.fa.fa-comments.fa-5x
+            i.fa.fa-taxi.fa-5x
           .col-xs-9.text-right
-            .huge 26
-            div Total logs
+            .huge= taxi_logs_count
+            div Taxi logs
       a(href='#')
         .panel-footer
           span.pull-left View Details
@@ -25,10 +25,10 @@
       .panel-heading
         .row
           .col-xs-3
-            i.fa.fa-tasks.fa-5x
+            i.fa.fa-sun-o.fa-5x
           .col-xs-9.text-right
-            .huge 12
-            div Whatever!
+            .huge= weather_logs_count
+            div Weather logs
       a(href='#')
         .panel-footer
           span.pull-left View Details
@@ -40,10 +40,11 @@
       .panel-heading
         .row
           .col-xs-3
-            i.fa.fa-shopping-cart.fa-5x
+            i.fa.fa-database.fa-5x
           .col-xs-9.text-right
-            .huge 124
-            div Whatever!
+            .huge= data_size
+              |  MB
+            div Data size
       a(href='#')
         .panel-footer
           span.pull-left View Details
