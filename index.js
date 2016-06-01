@@ -16,6 +16,7 @@ const WT_STATION = JSON.parse(
 const JQUERY = fs.readFileSync("public/js/jquery-2.2.4.min.js", "utf8");
 const WT_URL = "http://e-service.cwb.gov.tw/HistoryDataQuery/DayDataController.do?";
 const DB_URL = "mongodb://localhost:27017/project";
+const MAX_PER_INSERT = 100000;
 const STAT = {                                                                  
     "定點": 0,
     "載客": 1,
@@ -30,6 +31,7 @@ const STAT = {
 const app = new express();
 var db;
 var wtFetchQ = [];
+var tlQ = [];
 
 app.set("view engine", "pug");
 app.use("/static", express.static(path.join(__dirname, "public")));
@@ -65,7 +67,6 @@ app.get("/sign", function (req, res) {
 });
 
 app.post("/upload", function (req, res) {
-    var logs = [];
     req.setEncoding("utf8");
 
     var reader = readline.createInterface({
@@ -74,11 +75,14 @@ app.post("/upload", function (req, res) {
     
     reader.on("line", function (line) {
         var attrs = line.split(",");
-        logs.push({
+        tlQ.push({
             no: Number(attrs[0]),
-            pos: {
-                lng: Number(attrs[1]),
-                lat: Number(attrs[2]),
+            loc: {
+                type: "Point",
+                coordinates: [
+                    Number(attrs[1]),
+                    Number(attrs[2])
+                ]
             },
             sta: STAT[attrs[3]],
             time: parseTime(attrs[4])
@@ -86,32 +90,11 @@ app.post("/upload", function (req, res) {
     });
 
     reader.on("close", function () {
-        db.collection("taxi_logs")
-            .insertMany(logs, { w: 1, ordered: false }, function (err, result) {
-                res.json({
-                    status: "SUCCESS",
-                    content: result.insertedCount
-                });
-                if (result.insertedCount > 0) {
-                    db.collection("taxi_logs")
-                        .find({ _id: result.insertedIds[1] }).limit(1)
-                        .next(function (err, item) {
-                            if (err) {
-                                console.log(err);
-                                return;
-                            }
-                            var date = (new Date(item.time * 1000)).toISOString().substr(0, 10);
-                            WT_STATION.forEach(function (station) {
-                                wtFetchQ.push({
-                                    command: "viewMain",
-                                    station: station.no,
-                                    datepicker: date,
-                                    times: 0
-                                });
-                            });
-                        });
-                }
-            });
+        res.json({
+            status: "SUCCESS",
+            content: null
+        });
+        tl_to_db();
     });
 });
 
@@ -297,6 +280,36 @@ function unknownErrorHandler(res, err) {
         content: "Unknown error"
     });
     console.log(err.message);
+}
+
+function tl_to_db() {
+    if (tlQ.length > 0) {
+        db.collection("taxi_logs")
+            .insertMany(tlQ.splice(0, MAX_PER_INSERT), { w: 1, ordered: false }, function (err, result) {
+                tl_to_db();
+                /*
+                if (result.insertedCount > 0) {
+                    db.collection("taxi_logs")
+                        .find({ _id: result.insertedIds[1] }).limit(1)
+                        .next(function (err, item) {
+                            if (err) {
+                                console.log(err);
+                                return;
+                            }
+                            var date = (new Date(item.time * 1000)).toISOString().substr(0, 10);
+                            WT_STATION.forEach(function (station) {
+                                wtFetchQ.push({
+                                    command: "viewMain",
+                                    station: station.no,
+                                    datepicker: date,
+                                    times: 0
+                                });
+                            });
+                        });
+                }
+               */
+            });
+    }
 }
 
 mongo.connect(DB_URL, function (err, database) {
