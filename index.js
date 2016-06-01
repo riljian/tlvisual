@@ -88,28 +88,32 @@ app.post("/upload", function (req, res) {
     reader.on("close", function () {
         db.collection("taxi_logs")
             .insertMany(logs, { w: 1, ordered: false }, function (err, result) {
-                res.json({
-                    status: "SUCCESS",
-                    content: result.insertedCount
-                });
-                if (result.insertedCount > 0) {
-                    db.collection("taxi_logs")
-                        .find({ _id: result.insertedIds[1] }).limit(1)
-                        .next(function (err, item) {
-                            if (err) {
-                                console.log(err);
-                                return;
-                            }
-                            var date = (new Date(item.time * 1000)).toISOString().substr(0, 10);
-                            WT_STATION.forEach(function (station) {
-                                wtFetchQ.push({
-                                    command: "viewMain",
-                                    station: station.no,
-                                    datepicker: date,
-                                    times: 0
+                if (err) {
+                    unknownErrorHandler(res, err);
+                } else {
+                    res.json({
+                        status: "SUCCESS",
+                        content: result.insertedCount
+                    });
+                    if (result.insertedCount > 0) {
+                        db.collection("taxi_logs")
+                            .find({ _id: result.insertedIds[1] }).limit(1)
+                            .next(function (err, item) {
+                                if (err) {
+                                    console.log(err);
+                                    return;
+                                }
+                                var date = (new Date(item.time * 1000)).toISOString().substr(0, 10);
+                                WT_STATION.forEach(function (station) {
+                                    wtFetchQ.push({
+                                        command: "viewMain",
+                                        station: station.no,
+                                        datepicker: date,
+                                        times: 0
+                                    });
                                 });
                             });
-                        });
+                    }
                 }
             });
     });
@@ -251,14 +255,18 @@ function fetchWeather(station, date) {
                         if (logs.length > 0) {
                             db.collection("weather_logs")
                                 .insertMany(logs, { w: 1, ordered: false }, function (err, result) {
-                                    console.log([
-                                        "Insert",
-                                        result.insertedCount,
-                                        "logs to",
-                                        para.station,
-                                        "on",
-                                        para.datepicker
-                                    ].join(" "));
+                                    if (err) {
+                                        console.log(err.message);
+                                    } else {
+                                        console.log([
+                                            "Insert",
+                                            result.insertedCount,
+                                            "logs to",
+                                            para.station,
+                                            "on",
+                                            para.datepicker
+                                        ].join(" "));
+                                    }
                                 });
                         } else {
                             para.times += 1;
