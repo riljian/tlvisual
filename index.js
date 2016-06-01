@@ -234,14 +234,18 @@ function fetchWeather(station, date) {
                         if (logs.length > 0) {
                             db.collection("weather_logs")
                                 .insertMany(logs, { w: 1, ordered: false }, function (err, result) {
-                                    console.log([
-                                        "Insert",
-                                        result.insertedCount,
-                                        "logs to",
-                                        para.station,
-                                        "on",
-                                        para.datepicker
-                                    ].join(" "));
+                                    if (err) {
+                                        console.log(err.message);
+                                    } else {
+                                        console.log([
+                                            "Insert",
+                                            result.insertedCount,
+                                            "logs to",
+                                            para.station,
+                                            "on",
+                                            para.datepicker
+                                        ].join(" "));
+                                    }
                                 });
                         } else {
                             para.times += 1;
@@ -286,6 +290,9 @@ function tl_to_db() {
     if (tlQ.length > 0) {
         db.collection("taxi_logs")
             .insertMany(tlQ.splice(0, MAX_PER_INSERT), { w: 1, ordered: false }, function (err, result) {
+                if (err) {
+                    console.log(err.message);
+                }
                 tl_to_db();
                 /*
                 if (result.insertedCount > 0) {
