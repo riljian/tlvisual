@@ -42,7 +42,10 @@ function renderUpload(a) {
 
 function upload() {
     var reader = new FileReader();
-    var counter = 0;
+
+    $("#upload-btn").html(
+        '<i class="fa fa-spinner fa-spin fa-2x fa-fw"></i>'
+    ).prop("disabled", true);
 
     reader.onload = function (eve) {
         $.ajax({
@@ -51,9 +54,11 @@ function upload() {
             contentType: "text/plain",
             data: eve.target.result,
             success: function (obj) {
-                counter += 1;
-                window.console.log(obj);
-                window.console.log(counter);
+                $("#upload-btn").html("Complete")
+                    .switchClass("btn-default", "btn-success", function () {
+                        $("#upload-btn").html("Upload").prop("disabled", false)
+                            .switchClass("btn-success", "btn-default", 1000);
+                    });
             }
         });
     };
