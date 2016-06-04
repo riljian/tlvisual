@@ -1,23 +1,24 @@
+// dependency
 const path = require("path");
 const fs = require("fs");
+const d3 = require("d3");
 const express = require("express");
 const session = require("express-session");
 const jsdom = require("jsdom");
 const http = require("http");
+const firebase = require("firebase");
 const queryString = require("querystring");
-const mongo = require("mongodb").MongoClient;
 const hash = require("password-hash");
 const bodyParser = require("body-parser");
 const readline = require("readline");
 
+// constant
 const WT_STATION = JSON.parse(
     fs.readFileSync("station-list.json", "utf8")
 );
 const JQUERY = fs.readFileSync("public/js/jquery-2.2.4.min.js", "utf8");
 const WT_URL = "http://e-service.cwb.gov.tw/HistoryDataQuery/DayDataController.do?";
-const DB_URL = "mongodb://localhost:27017/project";
-const MAX_PER_INSERT = 100000;
-const STAT = {                                                                  
+const TX_STAT = {                                                                  
     "定點": 0,
     "載客": 1,
     "空車": 2,
@@ -28,10 +29,16 @@ const STAT = {
     "排班": 7
 };
 
+firebase.initializeApp({
+    serviceAccount: "firebase-auth.json",
+    databaseURL: "https://project-4157906125252914342.firebaseio.com/"
+});
+
+// static variables
 const app = new express();
-var db;
-var wtFetchQ = [];
-var tlQ = [];
+const db = firebase.database();
+const wtFetchQ = [];
+const tlUploadQ = [];
 
 app.set("view engine", "pug");
 app.use("/static", express.static(path.join(__dirname, "public")));
@@ -75,17 +82,24 @@ app.post("/upload", function (req, res) {
     
     reader.on("line", function (line) {
         var attrs = line.split(",");
-        tlQ.push({
+        tlUploadQ.push({
             no: Number(attrs[0]),
-            loc: {
-                type: "Point",
-                coordinates: [
-                    Number(attrs[1]),
-                    Number(attrs[2])
-                ]
-            },
-            sta: STAT[attrs[3]],
-            time: parseTime(attrs[4])
+            station: (function (loc) {
+                var min_dis = 1, min_sta;
+                WT_STATION.forEach(function (station) {
+                    var dis = d3.geo.distance(loc, [station.lng, station.lat]);
+                    if (dis < min_dis) {
+                        min_dis = dis;
+                        min_sta = station.no;
+                    }
+                });
+                return min_sta;
+            })([Number(attrs[1]), Number(attrs[2])]),
+            status: TX_STAT[attrs[3]],
+            time: (function (str) {
+                var token = /^(\d{4})-(\d{2})-(\d{2})\s(\d{2}):(\d{2}):(\d{2})$/.exec(str);
+                return Number(token[1] + token[2] + token[3] + token[4]);
+            })(attrs[4])
         });
     });
 
@@ -94,7 +108,47 @@ app.post("/upload", function (req, res) {
             status: "SUCCESS",
             content: null
         });
-        tl_to_db();
+
+        var txLogSummary = d3.nest()
+                            .key(function (d) { return d.station; })
+                            .key(function (d) { return d.time; })
+                            .key(function (d) { return d.status; })
+                            .rollup(function (v) { return v.length; })
+                            .entries(tlUploadQ);
+        tlUploadQ.splice(0, tlUploadQ.length); // clear
+        txLogSummary.forEach(function (station) {
+            if (station.values.length > 0) {
+                wtFetchQ.push({
+                    command: "viewMain",
+                    station: station.key,
+                    datepicker: (function (t) {
+                        return [
+                            t.key.substr(0, 4),
+                            t.key.substr(4, 2),
+                            t.key.substr(6, 2)
+                        ].join("-");
+                    })(station.values[0]),
+                    times: 0
+                });
+            }
+            station.values.forEach(function (time) {
+                var ref_l = [
+                    "taxi_logs",
+                    station.key,
+                    time.key
+                ].join("/");
+                var logs = {};
+
+                time.values.forEach(function (stat) {
+                    logs[stat.key] = stat.values;
+                });
+
+                db.ref(ref_l).set(logs);
+            });
+        });
+        if (wtFetchQ.length > 0) {
+            fetchWeather();
+        }
     });
 });
 
@@ -103,20 +157,10 @@ app.post("/renderUpload", function (req, res) {
 });
 
 app.post("/renderDashboard", function (req, res) {
-    db.collection("taxi_logs").stats(function (err, taxi_stats) {
-        if (err) {
-            console.log(err.message);
-        }
-        db.collection("weather_logs").stats(function (err, weather_stats) {
-            if (err) {
-                console.log(err.message);
-            }
-            res.render("dashboard", {
-                taxi_logs_count: taxi_stats.count,
-                weather_logs_count: weather_stats.count,
-                data_size: ((taxi_stats.size + weather_stats.size) / 1048576).toFixed(2)
-            });
-        });
+    res.render("dashboard", {
+        taxi_logs_count: 0,
+        weather_logs_count: 0,
+        data_size: (0).toFixed(2)
     });
 });
 
@@ -125,19 +169,18 @@ app.post("/signup", function (req, res) {
 
     user.password = hash.generate(user.password);
 
-    db.collection("users")
-        .insertOne(user, { w: 1 }, function (err, result) {
-            if (err) {
-                if (err.message.indexOf("duplicate key") > -1) {
-                    res.json({
-                        status: "FAIL",
-                        content: "Username duplicate"
-                    });
-                } else {
-                    unknownErrorHandler(res, err);
-                }
+    db.ref("users/" + user.username)
+        .once("value", function (user_snapshot) {
+            if (user_snapshot.exists()) {
+                res.json({
+                    status: "FAIL",
+                    content: "Username duplicate"
+                });
             } else {
                 req.session.username = user.username;
+                user_snapshot.ref.set({
+                    password: user.password
+                });
                 res.json({
                     status: "SUCCESS",
                     content: "/"
@@ -149,24 +192,19 @@ app.post("/signup", function (req, res) {
 app.post("/signin", function (req, res) {
     var user = req.body;
 
-    db.collection("users")
-        .find({ username: user.username }).limit(1)
-        .next(function (err, item) {
-            if (err) {
-                unknownErrorHandler(res, err);
+    db.ref("users/" + user.username)
+        .once("value", function (user_snapshot) {
+            if (user_snapshot.exists() && hash.verify(user.password, user_snapshot.val().password)) {
+                req.session.username = user.username;
+                res.json({
+                    status: "SUCCESS",
+                    content: "/"
+                });
             } else {
-                if (item && hash.verify(user.password, item.password)) {
-                    req.session.username = user.username;
-                    res.json({
-                        status: "SUCCESS",
-                        content: "/"
-                    });
-                } else {
-                    res.json({
-                        status: "FAIL",
-                        content: "Please check your username or password"
-                    });
-                }
+                res.json({
+                    status: "FAIL",
+                    content: "Please check your username or password"
+                });
             }
         });
 });
@@ -189,11 +227,7 @@ app.post("/data", function (req, res) {
     });
 });
 
-function fetchWeather(station, date) {
-    if (wtFetchQ.length === 0) {
-        return;
-    }
-
+function fetchWeather() {
     var para = wtFetchQ.pop();
 
     http.get(
@@ -206,6 +240,9 @@ function fetchWeather(station, date) {
                 content += chunk;
             });
             res.on("end", function () {
+                if (wtFetchQ.length > 0) {
+                    setTimeout(fetchWeather, 1000);
+                }
                 jsdom.env({
                     html: content,
                     src: [JQUERY],
@@ -216,37 +253,29 @@ function fetchWeather(station, date) {
                         }
                         var $rows = window.$("tr");
                         var logs = [];
-                        var time = Date.parse(para.datepicker) / 1000;
                         for (var i = 3; i < $rows.length; i += 1) {
                             var temp = Number($rows.eq(i).children("td").eq(3).text()),
-                                humi = Number($rows.eq(i).children("td").eq(5).text()),
-                                wind = Number($rows.eq(i).children("td").eq(8).text()),
                                 rain = Number($rows.eq(i).children("td").eq(9).text());
                             logs.push({
-                                time: time + (i - 2) * 3600,
-                                station: para.station,
                                 temp: temp ? temp : 0,
-                                humi: humi ? humi : 0,
-                                wind: wind ? wind : 0,
                                 rain: rain ? rain : 0
                             });
                         }
                         if (logs.length > 0) {
-                            db.collection("weather_logs")
-                                .insertMany(logs, { w: 1, ordered: false }, function (err, result) {
-                                    if (err) {
-                                        console.log(err.message);
+                            for (var i in logs) {
+                                var ref_l = "stations/" + para.station + "/";
+
+                                ref_l += (function (date, hour) {
+                                    var d = date.replace("/-/g", "");
+                                    if (hour > 9) {
+                                        return d + hour;
                                     } else {
-                                        console.log([
-                                            "Insert",
-                                            result.insertedCount,
-                                            "logs to",
-                                            para.station,
-                                            "on",
-                                            para.datepicker
-                                        ].join(" "));
+                                        return d + "0" + hour;
                                     }
-                                });
+                                })(para.datepicker, i);
+
+                                db.ref(ref_l).set(logs[i]);
+                            }
                         } else {
                             para.times += 1;
                             if (para.times < 5) {
@@ -269,15 +298,6 @@ function fetchWeather(station, date) {
     });
 }
 
-function parseTime(timeStr) {
-    var token = /^(\d{4}-\d{2}-\d{2})\s(\d{2}):(\d{2}):(\d{2})$/.exec(timeStr);
-    var time = Date.parse(token[1]) / 1000;
-    time += Number(token[2]) * 60 * 60;
-    time += Number(token[3]) * 60;
-    time += Number(token[4]);
-    return time;
-}
-
 function unknownErrorHandler(res, err) {
     res.json({
         status: "FAIL",
@@ -286,49 +306,6 @@ function unknownErrorHandler(res, err) {
     console.log(err.message);
 }
 
-function tl_to_db() {
-    if (tlQ.length > 0) {
-        db.collection("taxi_logs")
-            .insertMany(tlQ.splice(0, MAX_PER_INSERT), { w: 1, ordered: false }, function (err, result) {
-                if (err) {
-                    console.log(err.message);
-                }
-                tl_to_db();
-                /*
-                if (result.insertedCount > 0) {
-                    db.collection("taxi_logs")
-                        .find({ _id: result.insertedIds[1] }).limit(1)
-                        .next(function (err, item) {
-                            if (err) {
-                                console.log(err);
-                                return;
-                            }
-                            var date = (new Date(item.time * 1000)).toISOString().substr(0, 10);
-                            WT_STATION.forEach(function (station) {
-                                wtFetchQ.push({
-                                    command: "viewMain",
-                                    station: station.no,
-                                    datepicker: date,
-                                    times: 0
-                                });
-                            });
-                        });
-                }
-               */
-            });
-    }
-}
-
-mongo.connect(DB_URL, function (err, database) {
-    if (err) {
-        throw err;
-    }
-
-    db = database;
-
-    setInterval(fetchWeather, 1000);
-
-    app.listen(process.argv[2] || 8080, function () {
-        console.log("Listen on port " + (process.argv[2] || 8080));
-    });
+app.listen(process.argv[2] || 8080, function () {
+    console.log("Listen on port " + (process.argv[2] || 8080));
 });
