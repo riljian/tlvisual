@@ -160,11 +160,14 @@ app.post("/renderUpload", function (req, res) {
 });
 
 app.post("/renderDashboard", function (req, res) {
-    res.render("dashboard", {
-        taxi_logs_count: 0,
-        weather_logs_count: 0,
-        data_size: (0).toFixed(2)
-    });
+    db.ref()
+        .once("value", function (snapshot) {
+            res.render("dashboard", {
+                log_hour: snapshot.child("taxi_logs").numChildren(),
+                user_count: snapshot.child("users").numChildren(),
+                station_count: WT_STATION.length
+            });
+        });
 });
 
 app.post("/signup", function (req, res) {

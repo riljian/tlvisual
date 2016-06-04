@@ -11,7 +11,8 @@
           .col-xs-3
             i.fa.fa-taxi.fa-5x
           .col-xs-9.text-right
-            .huge= taxi_logs_count
+            .huge= log_hour
+              |  hrs
             div Taxi logs
       a(href='#')
         .panel-footer
@@ -26,8 +27,8 @@
           .col-xs-3
             i.fa.fa-sun-o.fa-5x
           .col-xs-9.text-right
-            .huge= weather_logs_count
-            div Weather logs
+            .huge= station_count
+            div Weather statoins
       a(href='#')
         .panel-footer
           span.pull-left View Details
@@ -39,11 +40,10 @@
       .panel-heading
         .row
           .col-xs-3
-            i.fa.fa-database.fa-5x
+            i.fa.fa-users.fa-5x
           .col-xs-9.text-right
-            .huge= data_size
-              |  MB
-            div Data size
+            .huge= user_count
+            div Users
       a(href='#')
         .panel-footer
           span.pull-left View Details
