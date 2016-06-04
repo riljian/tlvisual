@@ -31,14 +31,14 @@ const TX_STAT = {
 
 firebase.initializeApp({
     serviceAccount: "firebase-auth.json",
-    databaseURL: "https://project-4157906125252914342.firebaseio.com/"
+    databaseURL: "https://project-4157906125252914342.firebaseio.com"
 });
 
-// static variables
-const app = new express();
-const db = firebase.database();
-const wtFetchQ = [];
-const tlUploadQ = [];
+// static objects
+var app = new express();
+var db = firebase.database();
+var wtFetchQ = [];
+var tlUploadQ = [];
 
 app.set("view engine", "pug");
 app.use("/static", express.static(path.join(__dirname, "public")));
@@ -110,36 +110,39 @@ app.post("/upload", function (req, res) {
         });
 
         var txLogSummary = d3.nest()
-                            .key(function (d) { return d.station; })
                             .key(function (d) { return d.time; })
+                            .key(function (d) { return d.station; })
                             .key(function (d) { return d.status; })
                             .rollup(function (v) { return v.length; })
                             .entries(tlUploadQ);
-        tlUploadQ.splice(0, tlUploadQ.length); // clear
-        txLogSummary.forEach(function (station) {
-            if (station.values.length > 0) {
+        if (tlUploadQ.length > 0) {
+            var dateStr = (function (t) {
+                return [
+                    t.substr(0, 4),
+                    t.substr(4, 2),
+                    t.substr(6, 2)
+                ].join("-");
+            })(String(tlUploadQ[0].time));
+            WT_STATION.forEach(function (station) {
                 wtFetchQ.push({
                     command: "viewMain",
-                    station: station.key,
-                    datepicker: (function (t) {
-                        return [
-                            t.key.substr(0, 4),
-                            t.key.substr(4, 2),
-                            t.key.substr(6, 2)
-                        ].join("-");
-                    })(station.values[0]),
+                    station: station.no,
+                    datepicker: dateStr,
                     times: 0
                 });
-            }
-            station.values.forEach(function (time) {
+            });
+        }
+        tlUploadQ = []; // clear
+        txLogSummary.forEach(function (time) {
+            time.values.forEach(function (station) {
                 var ref_l = [
                     "taxi_logs",
-                    station.key,
-                    time.key
+                    time.key,
+                    station.key
                 ].join("/");
                 var logs = {};
 
-                time.values.forEach(function (stat) {
+                station.values.forEach(function (stat) {
                     logs[stat.key] = stat.values;
                 });
 
@@ -263,16 +266,17 @@ function fetchWeather() {
                         }
                         if (logs.length > 0) {
                             for (var i in logs) {
-                                var ref_l = "stations/" + para.station + "/";
+                                var ref_l = "stations/";
 
                                 ref_l += (function (date, hour) {
-                                    var d = date.replace("/-/g", "");
+                                    var d = date.replace(/-/g, "");
                                     if (hour > 9) {
                                         return d + hour;
                                     } else {
                                         return d + "0" + hour;
                                     }
                                 })(para.datepicker, i);
+                                ref_l += "/" + para.station;
 
                                 db.ref(ref_l).set(logs[i]);
                             }

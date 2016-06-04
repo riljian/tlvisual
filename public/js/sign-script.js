@@ -30,7 +30,7 @@ $(document).ready(function () {
                 if (obj.status === "FAIL") {
                     window.alert(obj.content);
                 } else {
-                    window.location = obj.content;
+                    window.location = "/";
                 }
             }
         });
@@ -54,7 +54,7 @@ $(document).ready(function () {
                 if (obj.status === "FAIL") {
                     window.alert(obj.content);
                 } else {
-                    window.location = obj.content;
+                    window.location = "/";
                 }
             }
         });
