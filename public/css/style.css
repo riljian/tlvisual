@@ -46,3 +46,7 @@ body#sign {
     -webkit-transform: scaleX(1);
     transform: scaleX(1);
 }
+
+body > #page-wrapper > .container-fluid {
+    padding-bottom: 50px;
+}
