@@ -45,7 +45,7 @@ html
                   i.fa.fa-fw.fa-cloud-upload
                   |  Upload
             li
-              a(href='javascript:void(0)')
+              a(href='javascript:void(0)', onclick='renderChart(this)')
                 i.fa.fa-fw.fa-bar-chart-o
                 |  Charts
         // /.navbar-collapse
@@ -58,3 +58,6 @@ html
     // Bootstrap Core JavaScript
     script(src='https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/js/bootstrap.min.js')
     script(src='/static/js/script.js')
+    // D3
+    script(src='https://d3js.org/d3.v3.min.js', charset='utf-8')
+    script(src='https://d3js.org/topojson.v1.min.js')

@@ -159,6 +159,10 @@ app.post("/renderUpload", function (req, res) {
     res.render("upload");
 });
 
+app.post("/renderChart", function (req, res) {
+    res.render("chart");
+});
+
 app.post("/renderDashboard", function (req, res) {
     db.ref()
         .once("value", function (snapshot) {

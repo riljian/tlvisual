@@ -1,0 +1,16 @@
+.row
+  .col-md-9
+  .col-md-3
+    form.form.clearfix
+      .form-group
+        label Duration
+        .input-group
+          input.form-control(type='text', placeholder='2016010113')
+          span.input-group-addon to
+          input.form-control(type='text', placeholder='2016011019')
+      button.btn.btn-success.pull-right Apply
+.row
+  .col-md-9
+  .col-md-3
+    svg#d3-map(width='100%', height='400px')
+script(src='/static/js/chart-script.js')

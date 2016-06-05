@@ -40,6 +40,25 @@ function renderUpload(a) {
     });
 }
 
+function renderChart(a) {
+    $(a).parent("li").siblings().removeClass("active");
+    $(a).parent("li").addClass("active");
+    $.ajax({
+        method: "POST",
+        url: "/renderChart",
+        contentType: "application/json",
+        data: JSON.stringify({
+        }),
+        success: function (obj) {
+            if (obj.status === "FAIL") {
+                window.alert(obj.content);
+            } else {
+                $("#page-wrapper > .container-fluid").html(obj);
+            }
+        }
+    });
+}
+
 function upload() {
     var reader = new FileReader();
 
