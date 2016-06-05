@@ -20,6 +20,7 @@
     "firebase": "^3.0.3",
     "jsdom": "^9.2.1",
     "password-hash": "^1.2.2",
-    "pug": "^2.0.0-alpha8"
+    "pug": "^2.0.0-alpha8",
+    "serve-favicon": "^2.3.0"
   }
 }

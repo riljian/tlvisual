@@ -11,6 +11,7 @@ const queryString = require("querystring");
 const hash = require("password-hash");
 const bodyParser = require("body-parser");
 const readline = require("readline");
+const favicon = require("serve-favicon");
 
 // constant
 const WT_STATION = JSON.parse(
@@ -42,6 +43,7 @@ var tlUploadQ = [];
 
 app.set("view engine", "pug");
 app.use("/static", express.static(path.join(__dirname, "public")));
+app.use(favicon(__dirname + "/public/favicon.ico"));
 app.use(session({
     secret: "administrator",
     resave: false,
