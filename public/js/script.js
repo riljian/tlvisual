@@ -5,6 +5,7 @@ $(document).ready(function () {
 function renderDashboard(a) {
     $(a).parent("li").siblings().removeClass("active");
     $(a).parent("li").addClass("active");
+    $("#navbar-collapse-primary").collapse("hide");
     $.ajax({
         method: "POST",
         url: "/renderDashboard",
@@ -24,6 +25,7 @@ function renderDashboard(a) {
 function renderUpload(a) {
     $(a).parent("li").siblings().removeClass("active");
     $(a).parent("li").addClass("active");
+    $("#navbar-collapse-primary").collapse("hide");
     $.ajax({
         method: "POST",
         url: "/renderUpload",
@@ -43,6 +45,7 @@ function renderUpload(a) {
 function renderChart(a) {
     $(a).parent("li").siblings().removeClass("active");
     $(a).parent("li").addClass("active");
+    $("#navbar-collapse-primary").collapse("hide");
     $.ajax({
         method: "POST",
         url: "/renderChart",

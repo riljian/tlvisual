@@ -47,6 +47,14 @@ body#sign {
     transform: scaleX(1);
 }
 
-body > #page-wrapper > .container-fluid {
+body > #wrapper > #page-wrapper > .container-fluid {
     padding-bottom: 50px;
+}
+
+.info-col {
+    height: 100px;
+}
+
+.info-col > object {
+    height: 100%;
 }
