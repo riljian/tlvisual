@@ -1,5 +1,7 @@
 /*global d3:false, topojson:false*/
 
+var MAX_R = 8, MIN_R = 1;
+var max, min;
 var svg = d3.select("#d3-map");
 var width = $("#d3-map").width(),
     height = $("#d3-map").height();
@@ -37,12 +39,29 @@ function fetchData() {
             ]
         }),
         success: function (obj) {
-            data = obj;
+            data = obj.content;
+
+            max = -Infinity;
+            min = Infinity;
+
+            for (var no in data.taxi_logs) {
+                var sum = 0;
+                data.taxi_logs[no].forEach(function (o) {
+                    for (var sta in o) {
+                        if (!isNaN(sta)) {
+                            sum += o[sta];
+                        }
+                    }
+                });
+                max = Math.max(max, sum);
+                min = Math.min(min, sum);
+            }
 
             svg.call(tip);
 
+            svg.selectAll("circle").remove();
             svg.selectAll("circle")
-                .data(data.content.stations)
+                .data(data.stations)
                 .enter()
                 .append("circle")
                 .attr("cx", function (d) {
@@ -51,10 +70,29 @@ function fetchData() {
                 .attr("cy", function (d) {
                     return projection([d.lng, d.lat])[1];
                 })
-                .attr("r", "4px")
+                .attr("r", function (d) {
+                    var sum = 0;
+
+                    data.taxi_logs[d.no].forEach(function (o) {
+                        for (var sta in o) {
+                            if (!isNaN(sta)) {
+                                sum += o[sta];
+                            }
+                        }
+                    });
+
+                    if (sum === 0) {
+                        return 0;
+                    } else {
+                        return MIN_R + (sum - min) * (MAX_R - MIN_R) / (max - min);
+                    }
+                })
                 .attr("fill", "#222")
-                .on('mouseover', tip.show)
-                .on('mouseout', tip.hide);
+                .on("click", function (d) {
+                    window.alert(d.no);
+                })
+                .on("mouseover", tip.show)
+                .on("mouseout", tip.hide);
         }
     });
 
