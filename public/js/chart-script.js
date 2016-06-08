@@ -8,6 +8,7 @@ var width = $("#d3-map").width(),
 var projection =  d3.geo.mercator().center([120.7, 23.6]).scale(5000).translate([width / 2, height / 2]);
 var path = d3.geo.path().projection(projection);
 var data;
+var centered;
 
 d3.json("/static/js/taiwan-topojson.json", function (error, tw) {
     "use strict";
@@ -23,7 +24,8 @@ d3.json("/static/js/taiwan-topojson.json", function (error, tw) {
         .append("path")
         .attr("d", path)
         .attr("fill", "#fff")
-        .attr("stroke", "#000");
+        .attr("stroke", "#000")
+        .on("click", zoom);
 });
 
 function fetchData() {
@@ -96,4 +98,48 @@ function fetchData() {
         }
     });
 
+}
+
+function zoom(d) {
+    var x, y, k;
+    if (d && centered !== d) {
+        var centroid = path.centroid(d);
+        x = centroid[0];
+        y = centroid[1];
+        k = 4;
+        centered = d;
+    } else {
+        x = width / 2;
+        y = height / 2;
+        k = 1;
+        centered = null;
+    }
+
+    var transform = [
+        "translate(",
+        width / 2,
+        ",",
+        height / 2,
+        ")scale(",
+        k,
+        ")translate(",
+        -x,
+        ",",
+        -y,
+        ")"
+    ].join("");
+
+    svg.selectAll("path")
+        .style("fill", centered && function (d) {
+            if (d === centered) {
+                return "orange";
+            } else {
+                return "none";
+            }
+        });
+
+    svg.transition()
+        .duration(750)
+        .attr("transform", transform)
+        .style("stroke-width", (1.5 / k) + "px");
 }
