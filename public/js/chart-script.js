@@ -156,7 +156,8 @@ function fetchData() {
                         return MIN_R + (sum - min) * (MAX_R - MIN_R) / (max - min);
                     }
                 })
-                .attr("fill", "#222")
+                .attr("fill", "#000")
+                .attr("fill-opacity", "0.4")
                 .on("click", function (d) {
                     var sData = [];
 
@@ -230,7 +231,7 @@ function zoom(d) {
             if (d === centered) {
                 return "orange";
             } else {
-                return "none";
+                return "transparent";
             }
         });
 
