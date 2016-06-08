@@ -9,6 +9,7 @@ var projection =  d3.geo.mercator().center([120.7, 23.6]).scale(5000).translate(
 var path = d3.geo.path().projection(projection);
 var data;
 var centered;
+var chart;
 
 d3.json("/static/js/taiwan-topojson.json", function (error, tw) {
     "use strict";
@@ -26,6 +27,72 @@ d3.json("/static/js/taiwan-topojson.json", function (error, tw) {
         .attr("fill", "#fff")
         .attr("stroke", "#000")
         .on("click", zoom);
+
+    $("#chart-div").height(500);
+
+    chart = new AmCharts.AmSerialChart();
+
+    chart.dataProvider = [];
+    chart.categoryField = "time";
+
+    var categoryAxis = chart.categoryAxis;
+    categoryAxis.parseDates = true;
+    categoryAxis.minPeriod = "hh";
+
+    var valueAxisTemp = new AmCharts.ValueAxis();
+    valueAxisTemp.axisColor = "#FF6600";
+    valueAxisTemp.gridAlpha = 0;
+    chart.addValueAxis(valueAxisTemp);
+
+    var valueAxisTaxi = new AmCharts.ValueAxis();
+    valueAxisTaxi.position = "right";
+    valueAxisTaxi.axisColor = "#FCD202";
+    valueAxisTaxi.gridAlpha = 0;
+    chart.addValueAxis(valueAxisTaxi);
+
+    var valueAxisRain = new AmCharts.ValueAxis();
+    valueAxisRain.position = "right";
+    valueAxisRain.axisColor = "#B0DE09";
+    valueAxisRain.gridAlpha = 0;
+    valueAxisRain.offset = 50;
+    chart.addValueAxis(valueAxisRain);
+
+    var graphTemp = new AmCharts.AmGraph();
+    graphTemp.valueAxis = valueAxisTemp;
+    graphTemp.type = "smoothedLine";
+    graphTemp.title = "Temperature";
+    graphTemp.lineColor = "#FF6600";
+    graphTemp.valueField = "temp";
+    chart.addGraph(graphTemp);
+
+    var graphTaxi = new AmCharts.AmGraph();
+    graphTaxi.valueAxis = valueAxisTaxi;
+    graphTaxi.type = "smoothedLine";
+    graphTaxi.title = "Taxi";
+    graphTaxi.lineColor = "#FCD202";
+    graphTaxi.valueField = "taxi";
+    chart.addGraph(graphTaxi);
+
+    var graphRain = new AmCharts.AmGraph();
+    graphRain.valueAxis = valueAxisRain;
+    graphRain.type = "column";
+    graphRain.title = "Rain";
+    graphRain.lineColor = "#B0DE09";
+    graphRain.valueField = "rain";
+    chart.addGraph(graphRain);
+
+    var chartCursor = new AmCharts.ChartCursor();
+    chart.addChartCursor(chartCursor);
+
+    var chartScrollbar = new AmCharts.ChartScrollbar();
+    chartScrollbar.offset = 15;
+    chart.addChartScrollbar(chartScrollbar);
+
+    var legend = new AmCharts.AmLegend();
+    legend.useGraphSettings = true;
+    chart.addLegend(legend);
+
+    chart.write("chart-div");
 });
 
 function fetchData() {
@@ -91,7 +158,36 @@ function fetchData() {
                 })
                 .attr("fill", "#222")
                 .on("click", function (d) {
-                    window.alert(d.no);
+                    var sData = [];
+
+                    data.weather_logs[d.no].forEach(function (o) {
+                        sData.push({
+                            rain: o.rain,
+                            temp: o.temp,
+                            taxi: (function (t) {
+                                var num = 0;
+                                data.taxi_logs[d.no].forEach(function (tl) {
+                                    if (tl.time === t) {
+                                        if (tl["2"]) {
+                                            num = tl["2"];
+                                        }
+                                    }
+                                });
+                                return num;
+                            })(o.time),
+                            time: (function (t) {
+                                return new Date(
+                                    Number(t.substr(0, 4)),
+                                    Number(t.substr(4, 2)) - 1,
+                                    Number(t.substr(6, 2)),
+                                    Number(t.substr(8, 2))
+                                );
+                            })(o.time)
+                        });
+                    });
+
+                    chart.dataProvider = sData;
+                    chart.validateData();
                 })
                 .on("mouseover", tip.show)
                 .on("mouseout", tip.hide);
