@@ -87,7 +87,7 @@ app.post("/upload", function (req, res) {
         tlUploadQ.push({
             no: Number(attrs[0]),
             station: (function (loc) {
-                var min_dis = 1, min_sta;
+                var min_dis = Infinity, min_sta;
                 WT_STATION.forEach(function (station) {
                     var dis = d3.geo.distance(loc, [station.lng, station.lat]);
                     if (dis < min_dis) {
