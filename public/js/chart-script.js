@@ -2,7 +2,7 @@
 
 var MAX_R = 8, MIN_R = 1;
 var max, min;
-var svg = d3.select("#d3-map");
+var g = d3.select("#d3-map").append("g");
 var width = $("#d3-map").width(),
     height = $("#d3-map").height();
 var projection =  d3.geo.mercator().center([120.7, 23.6]).scale(5000).translate([width / 2, height / 2]);
@@ -19,7 +19,7 @@ d3.json("/static/js/taiwan-topojson.json", function (error, tw) {
     
     var features = topojson.feature(tw, tw.objects.TW).features;
     
-    svg.selectAll("path")
+    g.selectAll("path")
         .data(features)
         .enter()
         .append("path")
@@ -126,10 +126,10 @@ function fetchData() {
                 min = Math.min(min, sum);
             }
 
-            svg.call(tip);
+            g.call(tip);
 
-            svg.selectAll("circle").remove();
-            svg.selectAll("circle")
+            g.selectAll("circle").remove();
+            g.selectAll("circle")
                 .data(data.stations)
                 .enter()
                 .append("circle")
@@ -225,7 +225,7 @@ function zoom(d) {
         ")"
     ].join("");
 
-    svg.selectAll("path")
+    g.selectAll("path")
         .style("fill", centered && function (d) {
             if (d === centered) {
                 return "orange";
@@ -234,7 +234,7 @@ function zoom(d) {
             }
         });
 
-    svg.transition()
+    g.transition()
         .duration(750)
         .attr("transform", transform)
         .style("stroke-width", (1.5 / k) + "px");
