@@ -57,6 +57,9 @@ function renderChart(a) {
                 window.alert(obj.content);
             } else {
                 $("#page-wrapper > .container-fluid").html(obj);
+                $("form").submit(function (eve) {
+                    eve.preventDefault();
+                });
             }
         }
     });

@@ -50,7 +50,7 @@ app.use(session({
     saveUninitialized: false
 }));
 
-app.post(["/signin", "/signup"], bodyParser.json());
+app.post(["/signin", "/signup", "/data"], bodyParser.json());
 
 app.get(["/"], function (req, res, next) {
     if (req.session.username) {
@@ -230,12 +230,71 @@ app.post("/signout", function (req, res) {
 });
 
 app.post("/data", function (req, res) {
-    var data = {};
+    var weather_logs = {}, taxi_logs = {}, someone_done = false;
 
     WT_STATION.forEach(function (station) {
-        data[station.no] = {
-            name: station.area
-        };
+        weather_logs[station.no] = [];
+        taxi_logs[station.no] = [];
+    });
+
+    db.ref("stations")
+        .orderByKey()
+        .startAt(req.body.duration[0])
+        .endAt(req.body.duration[1])
+        .once("value", function (snapshot) {
+            snapshot.forEach(function (snapshot_time) {
+                snapshot_time.forEach(function (snapshot_station) {
+                    var log = snapshot_station.val();
+                    log.time = snapshot_time.key;
+                    weather_logs[snapshot_station.key].push(log);
+                });
+            });
+
+            if (someone_done) {
+                res.json({
+                    status: "SUCCESS",
+                    content: {
+                        stations: WT_STATION,
+                        weather_logs: weather_logs,
+                        taxi_logs: taxi_logs
+                    }
+                });
+            } else {
+                someone_done = true;
+            }
+    });
+
+    db.ref("taxi_logs")
+        .orderByKey()
+        .startAt(req.body.duration[0])
+        .endAt(req.body.duration[1])
+        .once("value", function (snapshot) {
+            snapshot.forEach(function (snapshot_time) {
+                snapshot_time.forEach(function (snapshot_station) {
+                    var log = snapshot_station.val();
+                    if (Array.isArray(log)) {
+                        log = log.reduce(function (o, v, i) {
+                            o[i] = v;
+                            return o;
+                        }, {});
+                    }
+                    log.time = snapshot_time.key;
+                    taxi_logs[snapshot_station.key].push(log);
+                });
+            });
+
+            if (someone_done) {
+                res.json({
+                    status: "SUCCESS",
+                    content: {
+                        stations: WT_STATION,
+                        weather_logs: weather_logs,
+                        taxi_logs: taxi_logs
+                    }
+                });
+            } else {
+                someone_done = true;
+            }
     });
 });
 

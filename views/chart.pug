@@ -11,10 +11,10 @@
           .form-group
             label Duration
             .input-group
-              input.form-control(type='text', placeholder='2016010113')
+              input.form-control#duration-start(type='text', placeholder='2016010113')
               span.input-group-addon to
-              input.form-control(type='text', placeholder='2016011019')
-          button.btn.btn-success.pull-right Apply
+              input.form-control#duration-end(type='text', placeholder='2016011019')
+          button.btn.btn-success.pull-right#duration-btn(onclick='fetchData()') Apply
       .col-md-12
         svg#d3-map(width='100%', height='400px')
   .col-md-9.col-md-pull-3
