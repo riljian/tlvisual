@@ -19,6 +19,17 @@ d3.json("/static/js/taiwan-topojson.json", function (error, tw) {
     }
     
     var features = topojson.feature(tw, tw.objects.TW).features;
+    var colors = d3.scale.category10();
+
+    d3.selectAll(".material-switch > label")
+        .style("background-color", function (d, i) {
+            return colors(i);
+        });
+    $(".material-switch > input").change(function () {
+        if (area) {
+            d3.select(area).node().dispatchEvent(new MouseEvent("click"));
+        }
+    });
     
     g.selectAll("path")
         .data(features)
@@ -165,43 +176,13 @@ function fetchData() {
                 .attr("fill", "#000")
                 .attr("fill-opacity", "0.4")
                 .on("click", function (d) {
-                    var sData = [];
-
-                    if (this === area) {
-                        return;
-                    } else if (area) {
+                    if (area) {
                         d3.select(area).attr("fill", "#000");
                     }
                     d3.select(this).attr("fill", "#f00");
                     area = this;
 
-                    data.weather_logs[d.no].forEach(function (o) {
-                        sData.push({
-                            rain: o.rain,
-                            temp: o.temp,
-                            taxi: (function (t) {
-                                var num = 0;
-                                data.taxi_logs[d.no].forEach(function (tl) {
-                                    if (tl.time === t) {
-                                        if (tl["2"]) {
-                                            num = tl["2"];
-                                        }
-                                    }
-                                });
-                                return num;
-                            })(o.time),
-                            time: (function (t) {
-                                return new Date(
-                                    Number(t.substr(0, 4)),
-                                    Number(t.substr(4, 2)) - 1,
-                                    Number(t.substr(6, 2)),
-                                    Number(t.substr(8, 2))
-                                );
-                            })(o.time)
-                        });
-                    });
-
-                    chart.dataProvider = sData;
+                    chart.dataProvider = generateGraphData(d);
                     chart.validateData();
                 })
                 .on("mouseover", tip.show)
@@ -209,6 +190,41 @@ function fetchData() {
         }
     });
 
+}
+
+function generateGraphData(d) {
+    var sData = [];
+    var concernStat = $(".material-switch > input").map(function () { return this.checked; });
+
+    data.weather_logs[d.no].forEach(function (o) {
+        sData.push({
+            rain: o.rain,
+            temp: o.temp,
+            taxi: (function (t) {
+                var num = 0;
+                data.taxi_logs[d.no].forEach(function (tl) {
+                    if (tl.time === t) {
+                        for (var i = 0; i < concernStat.length; ++i) {
+                            if (concernStat[i] && tl[i]) {
+                                num += tl[i];
+                            }
+                        }
+                    }
+                });
+                return num;
+            })(o.time),
+            time: (function (t) {
+                return new Date(
+                    Number(t.substr(0, 4)),
+                    Number(t.substr(4, 2)) - 1,
+                    Number(t.substr(6, 2)),
+                    Number(t.substr(8, 2))
+                );
+            })(o.time)
+        });
+    });
+
+    return sData;
 }
 
 function zoom(d) {
