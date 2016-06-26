@@ -1,8 +1,11 @@
+var nav_actived;
+
 $(document).ready(function () {
     $("ul.nav.navbar-nav.side-nav > li:eq(0) > a").click();
 });
 
 function renderDashboard(a) {
+    nav_actived = a;
     $(a).parent("li").siblings().removeClass("active");
     $(a).parent("li").addClass("active");
     $("#navbar-collapse-primary").collapse("hide");
@@ -13,6 +16,9 @@ function renderDashboard(a) {
         data: JSON.stringify({
         }),
         success: function (obj) {
+            if (nav_actived !== a) {
+                return;
+            }
             if (obj.status === "FAIL") {
                 window.alert(obj.content);
             } else {
@@ -23,6 +29,7 @@ function renderDashboard(a) {
 }
 
 function renderUpload(a) {
+    nav_actived = a;
     $(a).parent("li").siblings().removeClass("active");
     $(a).parent("li").addClass("active");
     $("#navbar-collapse-primary").collapse("hide");
@@ -33,6 +40,9 @@ function renderUpload(a) {
         data: JSON.stringify({
         }),
         success: function (obj) {
+            if (nav_actived !== a) {
+                return;
+            }
             if (obj.status === "FAIL") {
                 window.alert(obj.content);
             } else {
@@ -43,6 +53,7 @@ function renderUpload(a) {
 }
 
 function renderChart(a) {
+    nav_actived = a;
     $(a).parent("li").siblings().removeClass("active");
     $(a).parent("li").addClass("active");
     $("#navbar-collapse-primary").collapse("hide");
@@ -53,6 +64,9 @@ function renderChart(a) {
         data: JSON.stringify({
         }),
         success: function (obj) {
+            if (nav_actived !== a) {
+                return;
+            }
             if (obj.status === "FAIL") {
                 window.alert(obj.content);
             } else {
