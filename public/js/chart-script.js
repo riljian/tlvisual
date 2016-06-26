@@ -9,6 +9,7 @@ var projection =  d3.geo.mercator().center([120.7, 23.6]).scale(5000).translate(
 var path = d3.geo.path().projection(projection);
 var data;
 var centered;
+var area;
 var chart;
 
 d3.json("/static/js/taiwan-topojson.json", function (error, tw) {
@@ -34,6 +35,7 @@ d3.json("/static/js/taiwan-topojson.json", function (error, tw) {
 
     chart.dataProvider = [];
     chart.categoryField = "time";
+    chart.pathToImages = "/static/img/"
 
     var categoryAxis = chart.categoryAxis;
     categoryAxis.parseDates = true;
@@ -62,6 +64,7 @@ d3.json("/static/js/taiwan-topojson.json", function (error, tw) {
     graphTemp.type = "smoothedLine";
     graphTemp.title = "Temperature";
     graphTemp.lineColor = "#FF6600";
+    graphTemp.lineThickness = 2;
     graphTemp.valueField = "temp";
     chart.addGraph(graphTemp);
 
@@ -70,6 +73,7 @@ d3.json("/static/js/taiwan-topojson.json", function (error, tw) {
     graphTaxi.type = "smoothedLine";
     graphTaxi.title = "Taxi";
     graphTaxi.lineColor = "#FCD202";
+    graphTaxi.lineThickness = 2;
     graphTaxi.valueField = "taxi";
     chart.addGraph(graphTaxi);
 
@@ -78,6 +82,7 @@ d3.json("/static/js/taiwan-topojson.json", function (error, tw) {
     graphRain.type = "column";
     graphRain.title = "Rain";
     graphRain.lineColor = "#B0DE09";
+    graphRain.lineThickness = 2;
     graphRain.valueField = "rain";
     chart.addGraph(graphRain);
 
@@ -86,6 +91,7 @@ d3.json("/static/js/taiwan-topojson.json", function (error, tw) {
 
     var chartScrollbar = new AmCharts.ChartScrollbar();
     chartScrollbar.offset = 15;
+    chartScrollbar.dragIcon = "/static/img/dragIconRoundBig.svg";
     chart.addChartScrollbar(chartScrollbar);
 
     var legend = new AmCharts.AmLegend();
@@ -160,6 +166,14 @@ function fetchData() {
                 .attr("fill-opacity", "0.4")
                 .on("click", function (d) {
                     var sData = [];
+
+                    if (this === area) {
+                        return;
+                    } else if (area) {
+                        d3.select(area).attr("fill", "#000");
+                    }
+                    d3.select(this).attr("fill", "#f00");
+                    area = this;
 
                     data.weather_logs[d.no].forEach(function (o) {
                         sData.push({
