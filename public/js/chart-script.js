@@ -59,6 +59,15 @@ d3.json("/static/js/taiwan-topojson.json", function (error, tw) {
     valueAxisRain.offset = 50;
     chart.addValueAxis(valueAxisRain);
 
+    var graphRain = new AmCharts.AmGraph();
+    graphRain.valueAxis = valueAxisRain;
+    graphRain.type = "column";
+    graphRain.title = "Rain";
+    graphRain.lineColor = "#B0DE09";
+    graphRain.lineThickness = 2;
+    graphRain.valueField = "rain";
+    chart.addGraph(graphRain);
+
     var graphTemp = new AmCharts.AmGraph();
     graphTemp.valueAxis = valueAxisTemp;
     graphTemp.type = "smoothedLine";
@@ -76,15 +85,6 @@ d3.json("/static/js/taiwan-topojson.json", function (error, tw) {
     graphTaxi.lineThickness = 2;
     graphTaxi.valueField = "taxi";
     chart.addGraph(graphTaxi);
-
-    var graphRain = new AmCharts.AmGraph();
-    graphRain.valueAxis = valueAxisRain;
-    graphRain.type = "column";
-    graphRain.title = "Rain";
-    graphRain.lineColor = "#B0DE09";
-    graphRain.lineThickness = 2;
-    graphRain.valueField = "rain";
-    chart.addGraph(graphRain);
 
     var chartCursor = new AmCharts.ChartCursor();
     chart.addChartCursor(chartCursor);
