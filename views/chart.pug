@@ -16,6 +16,47 @@
               input.form-control#duration-end(type='text', placeholder='2016011019')
           button.btn.btn-success.btn-block.pull-right#duration-btn(onclick='fetchData()') Apply
       .col-md-12
+        .col-md-6
+          .material-switch
+            input#status00(name='status', type='checkbox', checked)
+            label.label-warning(for='status00')
+            span &nbsp;&nbsp;&nbsp;&nbsp;定點
+        .col-md-6
+          .material-switch
+            input#status01(name='status', type='checkbox', checked)
+            label.label-primary(for='status01')
+            span &nbsp;&nbsp;&nbsp;&nbsp;載客
+        .col-md-6
+          .material-switch
+            input#status02(name='status', type='checkbox', checked)
+            label.label-success(for='status02')
+            span &nbsp;&nbsp;&nbsp;&nbsp;空車
+        .col-md-6
+          .material-switch
+            input#status03(name='status', type='checkbox', checked)
+            label.label-warning(for='status03')
+            span &nbsp;&nbsp;&nbsp;&nbsp;休息
+        .col-md-6
+          .material-switch
+            input#status04(name='status', type='checkbox', checked)
+            label.label-default(for='status04')
+            span &nbsp;&nbsp;&nbsp;&nbsp;登出
+        .col-md-6
+          .material-switch
+            input#status05(name='status', type='checkbox', checked)
+            label.label-info(for='status05')
+            span &nbsp;&nbsp;&nbsp;&nbsp;前往
+        .col-md-6
+          .material-switch
+            input#status06(name='status', type='checkbox', checked)
+            label.label-default(for='status06')
+            span &nbsp;&nbsp;&nbsp;&nbsp;未知
+        .col-md-6
+          .material-switch
+            input#status07(name='status', type='checkbox', checked)
+            label.label-danger(for='status07')
+            span &nbsp;&nbsp;&nbsp;&nbsp;排班
+      .col-md-12
         svg#d3-map(width='100%', height='400px')
   .col-md-9.col-md-pull-3
     .row
